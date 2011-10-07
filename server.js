@@ -3,6 +3,28 @@ var websock = require('websock');
 var w = 20,
     h = 20;
 
+var pieceShapes = [[[-1, 0], [0, 0], [1, 0], [1, -1]],  //   o
+                                                        // ooo
+
+                   [[-1, 0], [0, 0], [1, 0], [2, 0]],   // oooo
+                                                        // 
+
+                   [[-1, -1], [-1, 0], [0, 0], [1, 0]], // o
+                                                        // ooo
+
+                   [[0, 0], [1, 0], [0, -1], [1, -1]],  // oo
+                                                        // oo
+
+                   [[-1, 0], [0, 0], [1, 0], [0, -1]],  //  o
+                                                        // ooo
+
+                   [[-1, 0], [0, 0], [0, -1], [-1, 1]], //  oo
+                                                        // oo
+
+                   [[-1, -1], [0, -1], [0, 0], [1, 0]]  // oo
+                                                        //  oo
+    ];
+
 var playerColors = ['red', 'blue'];
 var game = newGame();
 var playerSockets = [null, null];
@@ -80,7 +102,7 @@ function newPiece(player) {
     var center = [Math.floor(w*(player+1)/3), 0];
     return {'color': playerColors[player],
             'center': center,
-            'blocks': [[-1, 0], [0, 0], [1, 0], [1, -1]]}
+            'blocks': pieceShapes[Math.floor(Math.random() * pieceShapes.length)]}
 }
 
 function tryMove(piece, dx, dy) {
@@ -118,7 +140,6 @@ function fallOrFreeze() {
         if (result == 'lose') {
             game['over'] = true;
         } else if (result == 'hit-ground-or-frozen-block') {
-            // TODO: only freeze if hit frozen block, not other piece
             var locs = pieceLocs(falling);
             for (var j in locs) {
                 var x = locs[j][0];
@@ -179,8 +200,8 @@ function userInput(player, input) {
             tryMove(game['falling'][player], 0, +1);
             break;
         }
+        // TODO: rotation
     }
 
     drawGame();
 }
-
