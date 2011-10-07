@@ -45,13 +45,31 @@ function gameColors(game) {
     return colors;
 }
 
-function maybeAddFalling(game) {
+function maybeAddPiece(game) {
     if (game['falling'].length == 0) {
-        var center = [Math.floor(w/2), -1];
+        var center = [Math.floor(w/2), 0];
         game['falling'][0] = {'color': 'blue',
                               'center': center,
                               'blocks': [[-1, 0], [0, 0], [1, 0], [1, -1]]};
     }
+}
+
+function tryMove(game, piece, dx, dy) {
+    var success = true;
+
+    var locs = pieceLocs(piece);
+    for (var j in locs) {
+        var x = locs[j][0] + dx;
+        var y = locs[j][1] + dy;
+        if (x < 0 || x >= w ||
+            y >= h || (y >= 0 && game['frozen'][y][x] != null)) {
+            return false;
+        }
+    }
+
+    piece['center'][0] += dx;
+    piece['center'][1] += dy;
+    return true;
 }
 
 function fallOrFreeze(game) {
@@ -59,21 +77,10 @@ function fallOrFreeze(game) {
 
     for (var i in game['falling']) {
         var falling = game['falling'][i];
-        var locs = pieceLocs(falling);
-        var canFall = true;
-
-        for (var j in locs) {
-            var x = locs[j][0];
-            var y = locs[j][1] + 1;
-            if (y >= h || (y >= 0 && game['frozen'][y][x] != null)) {
-                canFall = false;
-                break;
-            }
-        }
-        if (canFall) {
-            falling['center'][1]++;
+        if (tryMove(game, falling, 0, +1)) {
             newFalling.push(falling);
         } else {
+            var locs = pieceLocs(falling);
             for (var j in locs) {
                 var x = locs[j][0];
                 var y = locs[j][1];
@@ -90,12 +97,30 @@ function fallOrFreeze(game) {
 
 function advanceGame(socket, game) {
     fallOrFreeze(game);
-    maybeAddFalling(game);
+    maybeAddPiece(game);
     socket.send(JSON.stringify(gameColors(game)));
     
-    setTimeout(advanceGame, 100, socket, game);
+    setTimeout(advanceGame, 250, socket, game);
+}
+
+function userInput(socket, game, input) {
+    var cr = String.fromCharCode(input);
+    switch (cr) {
+    case 'j':
+        tryMove(game, game['falling'][0], -1, 0);
+        break;
+    case 'l':
+        tryMove(game, game['falling'][0], +1, 0);
+        break;
+    }
+
+    socket.send(JSON.stringify(gameColors(game)));
 }
 
 websock.listen(8888, function(socket) {
-    advanceGame(socket, newGame());
+    var game = newGame();
+    advanceGame(socket, game);
+    socket.on('message', function(message) {
+        userInput(socket, game, JSON.parse(message));
+    });
 });

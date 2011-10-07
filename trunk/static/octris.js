@@ -1,8 +1,14 @@
+var ws;
+
 function start() {
-    var ws = new WebSocket('ws://localhost:8888/');
+    ws = new WebSocket('ws://localhost:8888/');
     ws.onmessage = function(evt) {
         draw(JSON.parse(evt.data));
     };
+}
+
+function keyPress(key) {
+    ws.send(key);
 }
 
 function draw(blocks) {
