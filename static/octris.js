@@ -8,20 +8,39 @@ function start() {
 }
 
 function keyPress(key) {
-    ws.send(key);
+    ws.send(JSON.stringify(key));
 }
 
-function draw(blocks) {
-    var canvas = document.getElementById("canvas"),
-        ctx = canvas.getContext("2d"),
+function newGame() {
+    ws.send(JSON.stringify('new-game'));
+}
+
+function draw(gameState) {
+    var blocks = gameState['colors'],
+        player = gameState['player'],
+        canvas = document.getElementById('canvas'),
+        ctx = canvas.getContext('2d'),
         width = canvas.width,
         height = canvas.height,
-        padding = 80,
+        padding = 10,
         gameWidth = blocks[0].length,
         gameHeight = blocks.length,
         squareSize = Math.min((width - padding*2)/gameWidth, (height - padding*2)/gameHeight),
         gameTop = height - padding - squareSize * gameHeight,
         gameLeft = (width - squareSize * gameWidth) / 2;
+
+    if (player != null) {
+        document.getElementById('msg').innerHTML = 'You are <font color="'+player+'">'+player+'</font>.';
+    } else {
+        document.getElementById('msg').innerHTML = 'You are a lowly observer.';
+    }
+    if (gameState['over']) {
+        document.getElementById('msg').innerHTML += '<br/><b>Game over. :(</b>';
+    }
+    if (gameState['waiting']) {
+        document.getElementById('msg').innerHTML += '<br/>Waiting on another player.';
+    }
+    document.getElementById('newgame').hidden = !(gameState['over'] && player != null);
 
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, width, height);
