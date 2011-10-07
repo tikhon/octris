@@ -4,6 +4,8 @@
     <script src="octris.js"></script>
   </head>
   <body onload="start();" onkeypress="keyPress(event.which);">
-    <canvas id="canvas" width="640" height="640" style="border:1px dotted;float:left"></canvas>
+    <canvas id="canvas" width="480" height="480" style="border:1px dotted;float:left"></canvas>
+    <div id="msg">Waiting for connection...</div>
+    <div id="newgame" hidden="1"><a href="javascript:newGame();">New Game</a></div>
   </body>
 </html>
