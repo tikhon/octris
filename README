@@ -1,0 +1,10 @@
+On a Mac (with MacPorts installed):
+
+   sudo port install nodejs
+   sudo port install npm
+   npm install websock
+   node server.js
+
+Then open static/octris.html in Chrome, Safari, or trunk Firefox.
+
+Enjoy!
