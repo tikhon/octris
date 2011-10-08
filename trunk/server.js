@@ -107,7 +107,7 @@ function newPiece(player) {
     var center = [Math.floor(w*(player+1)/3), 0];
     return {'color': playerColors[player],
             'center': center,
-            'blocks': pieceShapes[Math.floor(Math.random() * pieceShapes.length)]}
+            'blocks': pieceShapes[Math.floor(Math.random() * pieceShapes.length)].slice()}
 }
 
 var SUCCESS = 0,
