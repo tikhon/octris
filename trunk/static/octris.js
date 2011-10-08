@@ -1,6 +1,7 @@
 var ws;
 
 function start() {
+    var host = window.location.hostname || 'localhost';
     ws = new WebSocket('ws://localhost:8888/');
     ws.onmessage = function(evt) {
         draw(JSON.parse(evt.data));

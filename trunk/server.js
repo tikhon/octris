@@ -53,13 +53,18 @@ websock.listen(8888, function(socket) {
 
 advanceGame();
 
+function newRow() {
+    var row = new Array();
+    for (var x = 0; x < w; x++) {
+        row[x] = null;
+    }
+    return row;
+}
+
 function newGame() {
     var frozen = new Array();
     for (var y = 0; y < h; y++) {
-        frozen[y] = new Array();
-        for (var x = 0; x < w; x++) {
-            frozen[y][x] = null;
-        }
+        frozen[y] = newRow();
     }
     
     return {'frozen': frozen,
@@ -105,30 +110,66 @@ function newPiece(player) {
             'blocks': pieceShapes[Math.floor(Math.random() * pieceShapes.length)]}
 }
 
-function tryMove(piece, dx, dy) {
-    var result = 'success';
+var SUCCESS = 0,
+    HIT_WALL_OR_OTHER_PIECE = 1,
+    HIT_GROUND_OR_FROZEN_BLOCK = 2,
+    LOSE = 3;
+
+function modifyPiece(piece, dx, dy, dr) {
+    piece['center'][0] += dx;
+    piece['center'][1] += dy;
+
+    while (dr < 0) dr += 4;
+    while (dr % 4 > 0) {
+        for (var i in piece['blocks']) {
+            var block = piece['blocks'][i];
+            piece['blocks'][i] = [-block[1], block[0]];
+        }
+        dr--;
+    }
+}
+
+function tryMove(piece, dx, dy, dr) {
+    var result = SUCCESS;
 
     var aboveTop = false;
+    modifyPiece(piece, dx, dy, dr);
     var locs = pieceLocs(piece);
-    for (var j in locs) {
-        // TODO: check for collisions with other pieces
-        var x = locs[j][0] + dx;
-        var y = locs[j][1] + dy;
+
+    // TODO: this and a lot of other things should be done functionally
+    var otherPieceLocs = new Array();
+    for (var i in game['falling']) {
+        var otherPiece = game['falling'][i];
+        if (otherPiece == piece) continue;
+        otherPieceLocs = otherPieceLocs.concat(pieceLocs(otherPiece));
+    }
+    
+
+    for (var i in locs) {
+        var x = locs[i][0];
+        var y = locs[i][1];
         if (y <= 0 && dy > 0) {
             aboveTop = true;
         }
+
+        for (var j in otherPieceLocs) {
+            if (x == otherPieceLocs[j][0] && y == otherPieceLocs[j][1]) {
+                result = Math.max(result, HIT_WALL_OR_OTHER_PIECE);
+            }
+        }
+
         if (x < 0 || x >= w) {
-            result = 'hit-wall';
+            result = Math.max(result, HIT_WALL_OR_OTHER_PIECE);
         } else if (y >= h || (y >= 0 && game['frozen'][y][x] != null)) {
-            result = 'hit-ground-or-frozen-block';
+            result = Math.max(result, HIT_GROUND_OR_FROZEN_BLOCK);
         }
     }
     
-    if (result == 'hit-ground-or-frozen-block' && aboveTop) {
-        return 'lose';
-    } else if (result == 'success') {
-        piece['center'][0] += dx;
-        piece['center'][1] += dy;
+    if (result != SUCCESS) {
+        modifyPiece(piece, -dx, -dy, -dr);
+        if (result == HIT_GROUND_OR_FROZEN_BLOCK && aboveTop) {
+            result = LOSE;
+        }
     }
     return result;
 }
@@ -136,10 +177,10 @@ function tryMove(piece, dx, dy) {
 function fallOrFreeze() {
     for (var i in game['falling']) {
         var falling = game['falling'][i];
-        var result = tryMove(falling, 0, +1);
-        if (result == 'lose') {
+        var result = tryMove(falling, 0, +1, 0);
+        if (result == LOSE) {
             game['over'] = true;
-        } else if (result == 'hit-ground-or-frozen-block') {
+        } else if (result == HIT_GROUND_OR_FROZEN_BLOCK) {
             var locs = pieceLocs(falling);
             for (var j in locs) {
                 var x = locs[j][0];
@@ -147,8 +188,22 @@ function fallOrFreeze() {
                 game['frozen'][y][x] = falling['color'];
             }
             
-            // TODO: possibly destroy row
+            destroyRows();
             game['falling'][i] = newPiece(Number(i));
+        }
+    }
+}
+
+function destroyRows() {
+    for (var y = h - 1; y >= 0; y--) {
+        var destroy = true;
+        for (var x = 0; x < w; x++) {
+            if (game['frozen'][y][x] == null) destroy = false;
+        }
+        
+        if (destroy) {
+            game['frozen'].splice(y, 1);
+            game['frozen'].unshift(newRow());
         }
     }
 }
@@ -167,7 +222,7 @@ function advanceGame() {
     }
     
     drawGame();
-    setTimeout(advanceGame, 300);
+    setTimeout(advanceGame, 400);
 }
 
 function drawGame() {
@@ -191,16 +246,21 @@ function userInput(player, input) {
         var cr = String.fromCharCode(input);
         switch (cr) {
         case 'j':
-            tryMove(game['falling'][player], -1, 0);
+            tryMove(game['falling'][player], -1, 0, 0);
             break;
         case 'l':
-            tryMove(game['falling'][player], +1, 0);
+            tryMove(game['falling'][player], +1, 0, 0);
+            break;
+        case 'i':
+            tryMove(game['falling'][player], 0, 0, +1);
+            break;
+        case 'k':
+            tryMove(game['falling'][player], 0, 0, -1);
             break;
         case ' ':
             tryMove(game['falling'][player], 0, +1);
             break;
         }
-        // TODO: rotation
     }
 
     drawGame();
